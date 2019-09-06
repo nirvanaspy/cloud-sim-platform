@@ -1,31 +1,38 @@
-import { axios } from '@/utils/request'
+import { axios } from "@/utils/request";
 
 export function getApplication() {
   return axios({
-    url: '/applications',
-    method: 'get'
-  })
+    url: "/applications",
+    method: "get"
+  });
 }
 
 export function deleteApplication(id) {
   return axios({
     url: `/applications/${id}`,
-    method: 'delete'
-  })
+    method: "delete"
+  });
 }
 
 export function addApplication(id, postData) {
   return axios({
     url: `/applications/byCreatorId`,
-    method: 'post',
+    method: "post",
     headers: {
-      // 'applicationEntity': {
-      //   'name': data.name,
-      //   'description': data.description
-      // },
       creatorId: id,
-      'content-type': 'application/json;charset=utf-8'
+      "content-type": "application/json;charset=utf-8"
     },
     data: postData
-  })
+  });
+}
+
+export function editApplication(id, postData) {
+  return axios({
+    url: `/applications/${id}`,
+    method: "patch",
+    headers: {
+      "content-type": "application/json;charset=utf-8"
+    },
+    data: postData
+  });
 }
