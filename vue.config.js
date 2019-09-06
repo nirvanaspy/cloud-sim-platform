@@ -1,9 +1,9 @@
-const path = require('path')
-const webpack = require('webpack')
-const createThemeColorReplacerPlugin = require('./config/plugin.config')
+const path = require("path");
+const webpack = require("webpack");
+const createThemeColorReplacerPlugin = require("./config/plugin.config");
 
 function resolve(dir) {
-  return path.join(__dirname, dir)
+  return path.join(__dirname, dir);
 }
 
 // vue.config.js
@@ -16,33 +16,33 @@ const vueConfig = {
   },
 
   chainWebpack: config => {
-    config.resolve.alias.set('@$', resolve('src'))
+    config.resolve.alias.set("@$", resolve("src"));
 
-    const svgRule = config.module.rule('svg')
-    svgRule.uses.clear()
+    const svgRule = config.module.rule("svg");
+    svgRule.uses.clear();
     svgRule
-      .oneOf('inline')
+      .oneOf("inline")
       .resourceQuery(/inline/)
-      .use('vue-svg-icon-loader')
-      .loader('vue-svg-icon-loader')
+      .use("vue-svg-icon-loader")
+      .loader("vue-svg-icon-loader")
       .end()
       .end()
-      .oneOf('external')
-      .use('file-loader')
-      .loader('file-loader')
+      .oneOf("external")
+      .use("file-loader")
+      .loader("file-loader")
       .options({
-        name: 'assets/[name].[hash:8].[ext]'
-      })
+        name: "assets/[name].[hash:8].[ext]"
+      });
   },
 
   pluginOptions: {
     electronBuilder: {
       builderOptions: {
         win: {
-          icon: './public/app.ico'
+          icon: "./public/app.ico"
         },
         mac: {
-          icon: './public/app.png'
+          icon: "./public/app.png"
         }
       }
     }
@@ -80,16 +80,17 @@ const vueConfig = {
   lintOnSave: undefined,
   // babel-loader no-ignore node_modules/*
   transpileDependencies: [],
-  publicPath: process.env.NODE_ENV === 'production' ? '' : '/'
-}
+  publicPath: process.env.NODE_ENV === "production" ? "" : "/"
+};
 
 // preview.pro.loacg.com only do not use in your production;
-if (
-  process.env.NODE_ENV !== 'production' ||
-  process.env.VUE_APP_PREVIEW === 'true'
-) {
-  // add `ThemeColorReplacer` plugin to webpack plugins
-  vueConfig.configureWebpack.plugins.push(createThemeColorReplacerPlugin())
-}
+vueConfig.configureWebpack.plugins.push(createThemeColorReplacerPlugin());
+// if (
+//   process.env.NODE_ENV !== "production" ||
+//   process.env.VUE_APP_PREVIEW === "true"
+// ) {
+//   // add `ThemeColorReplacer` plugin to webpack plugins
+//   vueConfig.configureWebpack.plugins.push(createThemeColorReplacerPlugin());
+// }
 
-module.exports = vueConfig
+module.exports = vueConfig;
