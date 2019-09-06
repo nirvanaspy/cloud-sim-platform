@@ -62,7 +62,10 @@
       </a-layout-footer>
 
       <!-- Setting Drawer (show in development mode) -->
-      <setting-drawer v-if="!production"></setting-drawer>
+      <setting-drawer @toggleSetting="toggleSetting"></setting-drawer>
+
+      <!--uploader drawer-->
+      <uploader-drawer ref="uploaderDrawer"></uploader-drawer>
     </a-layout>
   </a-layout>
 </template>
@@ -79,6 +82,7 @@ import SideMenu from '@/components/Menu/SideMenu'
 import GlobalHeader from '@/components/GlobalHeader'
 import GlobalFooter from '@/components/GlobalFooter'
 import SettingDrawer from '@/components/SettingDrawer'
+import UploaderDrawer from '@/components/Uploader/UploaderDrawer'
 
 export default {
   name: 'BasicLayout',
@@ -89,13 +93,15 @@ export default {
     SideMenu,
     GlobalHeader,
     GlobalFooter,
-    SettingDrawer
+    SettingDrawer,
+    UploaderDrawer
   },
   data() {
     return {
       production: config.production,
       collapsed: false,
-      menus: []
+      menus: [],
+      showSettingDrawer: true
     }
   },
   computed: {
@@ -156,6 +162,9 @@ export default {
     },
     drawerClose() {
       this.collapsed = false
+    },
+    toggleSetting(visible) {
+      this.$refs.uploaderDrawer.btnVisible = !visible
     }
   }
 }
