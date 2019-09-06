@@ -8,8 +8,9 @@ const getters = {
   welcome: state => state.user.welcome,
   roles: state => state.user.roles,
   userInfo: state => state.user.info,
+  userId: state => state.user.userId,
   addRouters: state => state.permission.addRouters,
   multiTab: state => state.app.multiTab
-}
+};
 
-export default getters
+export default getters;
