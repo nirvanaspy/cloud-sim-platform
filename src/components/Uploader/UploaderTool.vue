@@ -10,8 +10,8 @@
     <uploader-drop>
       <p>Drop files here to upload or</p>
       <uploader-btn>select files</uploader-btn>
-      <uploader-btn :attrs="attrs">select images</uploader-btn>
-      <uploader-btn :directory="true">select folder</uploader-btn>
+      <!--<uploader-btn :attrs="attrs">select images</uploader-btn>
+      <uploader-btn :directory="true">select folder</uploader-btn>-->
     </uploader-drop>
     <uploader-list></uploader-list>
   </uploader>
@@ -107,7 +107,6 @@ export default {
 
     // 计算文件MD5的方法
     computeMD5(file) {
-      console.log(1)
       let fileReader = new FileReader()
       let time = new Date().getTime()
       let blobSlice = File.prototype.slice
@@ -150,7 +149,6 @@ export default {
 
     // 计算MD5成功后的回调
     computeMD5Success(md5, file) {
-      alert(md5)
       // 将自定义参数直接加载uploader实例的opts上
       Object.assign(this.uploader.opts, {
         query: {
