@@ -1,3 +1,4 @@
+/*eslint-disable*/
 import { message } from 'ant-design-vue/es'
 // import defaultSettings from '../defaultSettings';
 import themeColor from './themeColor.js'

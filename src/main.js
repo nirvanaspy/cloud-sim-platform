@@ -23,16 +23,18 @@ Vue.config.productionTip = false
 Vue.use(VueAxios)
 Vue.use(uploader)
 
-require('electron').ipcRenderer.on('startServer', (ev, msg) => {
-  console.log(msg)
-  if (vm) {
-    vm.$router.push('./simApplication')
-    setTimeout(() => {
-      console.log(vm)
-      vm.handleAdd()
-    }, 500)
-  }
-})
+if (process.platform === 'darwin') {
+  require('electron').ipcRenderer.on('startServer', (ev, msg) => {
+    console.log(msg)
+    if (vm) {
+      vm.$router.push('./simApplication')
+      setTimeout(() => {
+        console.log(vm)
+        vm.handleAdd()
+      }, 500)
+    }
+  })
+}
 
 export default {
   sendThis

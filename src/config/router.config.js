@@ -37,8 +37,7 @@ export const asyncRouterMap = [
         meta: {
           title: '组件',
           keepAlive: true,
-          icon: 'table',
-          permission: ['dashboard']
+          icon: 'table'
         },
         children: [
           {
@@ -58,7 +57,7 @@ export const asyncRouterMap = [
             meta: {
               title: '组件详情',
               keepAlive: true,
-              permission: ['simApplication']
+              permission: ['dashboard']
             }
           }
         ]

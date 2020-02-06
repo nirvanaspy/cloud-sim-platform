@@ -177,14 +177,14 @@ import {
   deleteApplication,
   addApplication,
   editApplication
-} from "@/api/application";
-import uniqid from "uniqid";
-import renderFun from "@/main.js";
-import _ from "lodash";
+} from '@/api/application'
+import uniqid from 'uniqid'
+import renderFun from '@/main.js'
+import _ from 'lodash'
 // import qs from 'qs'
 // import _ from 'lodash'
-import Vue from "vue";
-import { USER_ID } from "@/store/mutation-types";
+import Vue from 'vue'
+import { USER_ID } from '@/store/mutation-types'
 const formItemLayout = {
   labelCol: {
     xs: { span: 24 },
@@ -194,7 +194,7 @@ const formItemLayout = {
     xs: { span: 24 },
     sm: { span: 16 }
   }
-};
+}
 const formTailLayout = {
   labelCol: {
     xs: { span: 24 },
@@ -204,7 +204,7 @@ const formTailLayout = {
     xs: { span: 24 },
     sm: { span: 16 }
   }
-};
+}
 const attributeLayout = {
   labelCol: {
     xs: { span: 24 },
@@ -214,32 +214,32 @@ const attributeLayout = {
     xs: { span: 24 },
     sm: { span: 19 }
   }
-};
+}
 export default {
-  name: "SimApplication",
+  name: 'SimApplication',
   data() {
     return {
       columns: [
         {
-          title: "名称",
-          dataIndex: "name",
-          align: "center"
+          title: '名称',
+          dataIndex: 'name',
+          align: 'center'
         },
         {
-          title: "描述",
-          dataIndex: "description",
-          align: "center"
+          title: '描述',
+          dataIndex: 'description',
+          align: 'center'
         },
         {
-          title: "创建时间",
-          dataIndex: "createTime",
-          align: "center"
+          title: '创建时间',
+          dataIndex: 'createTime',
+          align: 'center'
         },
         {
-          title: "操作",
-          dataIndex: "operation",
-          align: "center",
-          scopedSlots: { customRender: "operation" }
+          title: '操作',
+          dataIndex: 'operation',
+          align: 'center',
+          scopedSlots: { customRender: 'operation' }
         }
       ],
       formItemLayout,
@@ -253,127 +253,127 @@ export default {
       },
       applicationList: [
         {
-          name: "应用1",
-          description: "这是仿真应用1",
-          id: "1",
-          createTime: "2010-8-31 11:00:00"
+          name: '应用1',
+          description: '这是仿真应用1',
+          id: '1',
+          createTime: '2010-8-31 11:00:00'
         },
         {
-          name: "应用2",
-          description: "这是仿真应用2",
-          id: "2",
-          createTime: "2010-8-31 11:01:00"
+          name: '应用2',
+          description: '这是仿真应用2',
+          id: '2',
+          createTime: '2010-8-31 11:01:00'
         },
         {
-          name: "应用3",
-          description: "这是仿真应用3",
-          id: "3",
-          createTime: "2010-8-31 11:02:00"
+          name: '应用3',
+          description: '这是仿真应用3',
+          id: '3',
+          createTime: '2010-8-31 11:02:00'
         },
         {
-          name: "应用4",
-          description: "这是仿真应用4",
-          id: "4",
-          createTime: "2010-8-31 11:03:00"
+          name: '应用4',
+          description: '这是仿真应用4',
+          id: '4',
+          createTime: '2010-8-31 11:03:00'
         }
       ],
       targetApp: {},
       form: this.$form.createForm(this),
       createForm: {
-        name: "",
-        description: "",
+        name: '',
+        description: '',
         attributeList: []
       },
       currentForm: {},
       visible: false,
       editVisible: false
-    };
+    }
   },
   created() {
-    this.getAppList();
-    renderFun.sendThis(this);
+    this.getAppList()
+    renderFun.sendThis(this)
   },
   methods: {
     getAppList() {
       getApplication().then(res => {
         if (res.data.code === 0) {
-          this.applicationList = res.data.data;
+          this.applicationList = res.data.data
         }
-      });
+      })
     },
     onDelete(id) {
       deleteApplication(id).then(res => {
         if (res.data.code === 0) {
-          const dataSource = [...this.applicationList];
-          this.dataSource = dataSource.filter(item => item.id !== id);
+          const dataSource = [...this.applicationList]
+          this.dataSource = dataSource.filter(item => item.id !== id)
         }
-      });
+      })
     },
     resetForm() {
       this.createForm = {
-        name: "",
-        description: "",
+        name: '',
+        description: '',
         attributeList: []
-      };
+      }
     },
     handleAdd() {
-      this.resetForm();
-      this.visible = true;
+      this.resetForm()
+      this.visible = true
     },
     handleEdit(record) {
-      console.log(this.$store);
-      this.currentForm = _.cloneDeep(record);
+      console.log(this.$store)
+      this.currentForm = _.cloneDeep(record)
       this.currentForm.params.forEach(item => {
         if (_.isNumber(item.type)) {
-          item.type = item.type.toString();
+          item.type = item.type.toString()
         }
-      });
-      this.editVisible = true;
+      })
+      this.editVisible = true
     },
     handleOk() {
       const postData = {
         name: this.createForm.name,
         description: this.createForm.description,
         params: this.createForm.attributeList
-      };
-      const userId = Vue.ls.get(USER_ID);
+      }
+      const userId = Vue.ls.get(USER_ID)
       addApplication(userId, JSON.stringify(postData)).then(res => {
         if (res.data.code === 0) {
-          this.$message.success("仿真应用创建成功！");
-          this.visible = false;
-          this.getAppList();
+          this.$message.success('仿真应用创建成功！')
+          this.visible = false
+          this.getAppList()
         }
-      });
+      })
     },
     confirmEdit() {
       const postData = {
         name: this.currentForm.name,
         description: this.currentForm.description,
         params: this.currentForm.params
-      };
-      const appId = this.currentForm.id;
+      }
+      const appId = this.currentForm.id
       editApplication(appId, JSON.stringify(postData)).then(res => {
         if (res.data.code === 0) {
-          this.$message.success("仿真应用修改成功！");
-          this.editVisible = false;
-          this.getAppList();
+          this.$message.success('仿真应用修改成功！')
+          this.editVisible = false
+          this.getAppList()
         }
-      });
+      })
     },
     remove(k, list) {
-      const arr = list;
-      arr.splice(arr.findIndex(item => item.id === k.attrId), 1);
+      const arr = list
+      arr.splice(arr.findIndex(item => item.id === k.attrId), 1)
     },
     addAttribute(list) {
       list.push({
-        name: "",
-        type: "",
+        name: '',
+        type: '',
         attrId: uniqid.time()
-      });
-      console.log(list);
+      })
+      console.log(list)
     }
   }
-};
+}
 </script>
 
 <style scoped></style>
