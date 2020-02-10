@@ -1,20 +1,66 @@
 <template>
-  <uploader
-    ref="uploader"
-    :options="options"
-    class="uploader-example"
-    @files-added="onFilesAdd"
-    @file-success="onFileSuccess"
-  >
-    <uploader-unsupport></uploader-unsupport>
-    <uploader-drop>
-      <p>Drop files here to upload or</p>
-      <uploader-btn>select files</uploader-btn>
-      <!--<uploader-btn :attrs="attrs">select images</uploader-btn>
-      <uploader-btn :directory="true">select folder</uploader-btn>-->
-    </uploader-drop>
-    <uploader-list></uploader-list>
-  </uploader>
+  <div>
+    <!--上传控件-->
+    <uploader
+      ref="uploader"
+      :options="options"
+      class="manage-uploader"
+      @files-added="onFilesAdd"
+      @file-success="onFileSuccess"
+      :file-status-text="statusText"
+    >
+      <uploader-unsupport></uploader-unsupport>
+      <!--<uploader-drop>
+        <uploader-btn>选择文件</uploader-btn>
+        <uploader-btn :attrs="attrs">select images</uploader-btn>
+        <uploader-btn :directory="true">select folder</uploader-btn>
+      </uploader-drop>-->
+      <!--文件选择按钮-->
+      <uploader-btn>选择文件</uploader-btn>
+      <!--文件上传列表-->
+      <uploader-list>
+        <div class="file-panel" slot-scope="props">
+          <ul class="file-list">
+            <li v-for="file in props.fileList" :key="file.id">
+              <uploader-file
+                :class="'file_' + file.id"
+                ref="files"
+                :file="file"
+                :list="true"
+              ></uploader-file>
+            </li>
+          </ul>
+        </div>
+      </uploader-list>
+    </uploader>
+
+    <!--文件列表弹框-->
+    <a-modal
+      title="文件选择列表"
+      :width="800"
+      v-model="visible"
+      @ok="startUpload"
+      @cancel="cancelUpload"
+    >
+      <a-table
+        :columns="columns"
+        :dataSource="fileList"
+        :pagination="false"
+        :rowSelection="{
+          selectedRowKeys: selectedRowKeys,
+          onChange: onSelectChange
+        }"
+        rowKey="fileId"
+      >
+        <template slot="operation" slot-scope="record">
+          <a-button type="primary" @click="deleteFileFromList(record.fileId)"
+            >删除</a-button
+          >
+        </template>
+      </a-table>
+      <!--<a-button type="primary" @click="startUpload">上传</a-button>-->
+    </a-modal>
+  </div>
 </template>
 
 <script>
@@ -22,19 +68,21 @@ import SparkMD5 from 'spark-md5'
 import Vue from 'vue'
 import qs from 'qs'
 import { ACCESS_TOKEN } from '@/store/mutation-types'
-import { hasMd5, mergeFile } from '@/api/files'
-import uniqid from 'uniqid'
+// import { hasMd5, mergeFile } from '@/api/files'
+import { hasMd5, mergeFile } from '@/api/gtsb_files'
+import uniqId from 'uniqid'
 
 export default {
   name: 'UploaderTool',
+
   data() {
     return {
       // 文件上传配置项
       options: {
-        target: 'http://127.0.0.1:8080/apis/files/chunks',
-        headers: {
+        target: 'http://192.168.31.232:23412/files/chunks',
+        /*headers: {
           Authorization: `bearer${Vue.ls.get(ACCESS_TOKEN)}`
-        },
+        },*/
         chunkSize: 10 * 1024 * 1024,
         simultaneousUploads: 20,
         autoStart: false,
@@ -50,15 +98,40 @@ export default {
       attrs: {
         accept: 'image/*'
       },
-      promiseList: []
+      // 文件上传状态文字
+      statusText: {
+        success: '上传结束',
+        error: '出错了',
+        uploading: '上传中',
+        paused: '暂停中',
+        waiting: '等待中'
+      },
+      promiseList: [],
+      // 用户选择后的文件列表
+      fileList: [],
+      columns: [
+        {
+          title: '文件名',
+          dataIndex: 'name'
+        },
+        {
+          title: '操作',
+          key: 'action',
+          scopedSlots: { customRender: 'operation' }
+        }
+      ],
+      selectedRowKeys: [],
+      visible: false
     }
   },
+
   computed: {
     //Uploader实例
     uploader() {
       return this.$refs.uploader.uploader
     }
   },
+
   methods: {
     // 文件信息实例化工厂
     fileInfoFactory(fileObj) {
@@ -86,9 +159,6 @@ export default {
       return P
     },
 
-    // 按添加文件的批次赋予每批文件唯一的serialNo
-    serialInfoFactory(id, num) {},
-
     // 文件添加后的回调
     /*onFileAdd(file) {
       this.computeMD5(file)
@@ -96,13 +166,18 @@ export default {
 
     //批量添加文件
     onFilesAdd(files) {
-      // let tag = uniqid.time()
-      // files.forEach(file => {
-      //   file.serialNo = tag
-      // })
       files.forEach(file => {
-        this.computeMD5(file)
+        let tag = uniqId.time()
+        // file.serialNo = tag
+        file.pause()
+        file.fileId = tag
       })
+      this.fileList = files
+      // this.fileList = this.fileList.concat(files)
+      this.visible = true
+      /*files.forEach(file => {
+        this.computeMD5(file)
+      })*/
     },
 
     // 计算文件MD5的方法
@@ -114,7 +189,7 @@ export default {
       const chunkSize = 10 * 1024 * 1000
       let chunks = Math.ceil(file.size / chunkSize)
       let spark = new SparkMD5.ArrayBuffer()
-      file.pause()
+      //file.pause()
       loadNext()
       fileReader.onload = e => {
         spark.append(e.target.result)
@@ -158,14 +233,37 @@ export default {
       file.uniqueIdentifier = md5
       let fileInfo = this.fileInfoFactory(file)
       console.log(fileInfo)
-      hasMd5(md5).then(res => {
+      /*hasMd5(md5).then(res => {
         // 如果文件md5已存在则应该直接upload
         if (res.data.data.id) {
+          let resVal = ''
+          let val = file.size
+          if (val < 1024) {
+            resVal = val + ' B'
+          } else if (val >= 1024 && val < 1048576) {
+            resVal = Math.round((val / 1024) * 10) / 10 + ' KB'
+          } else if (val >= 1048576 && val < 1073741824) {
+            resVal = Math.round((val / 1048576) * 10) / 10 + ' MB'
+          } else if (val >= 1073741824) {
+            resVal = Math.round((val / 1073741824) * 10) / 10 + ' G'
+          }
+          this.$('.manage-uploader .uploader-list ul').prepend(
+            '<div status="success" class="uploader-file">' +
+              '<div class="uploader-file-progress" style="transform: translateX(0%);"></div> ' +
+              '<div class="uploader-file-info">' +
+              '<div class="uploader-file-name"><i icon="unknown" class="uploader-file-icon"></i>' +
+              file.name +
+              '</div> <div class="uploader-file-size">' +
+              resVal +
+              '</div> <div class="uploader-file-meta"></div> <div class="uploader-file-status"><span>上传结束</span> <span style="display: none;"><span>100%</span> <em>0 bytes / s</em> <i></i></span></div> <div class="uploader-file-actions"><span class="uploader-file-pause"></span> <span class="uploader-file-resume">️</span> <span class="uploader-file-retry"></span> <span class="uploader-file-remove"></span></div></div></div>'
+          )
+          this.uploader.removeFile(file)
         } else {
           // 文件md5不存在则继续上传
           file.resume()
         }
-      })
+      })*/
+      file.resume()
     },
 
     // 文件上传成功后的回调
@@ -173,20 +271,108 @@ export default {
       console.log(arguments[1])
       let fileInfo = this.fileInfoFactory(arguments[1])
       this.promiseList.push(this.mergeFileFactory(fileInfo))
+    },
+
+    // 文件勾选
+    onSelectChange(selectedRowKeys) {
+      console.log('selectedRowKeys changed: ', selectedRowKeys)
+      this.selectedRowKeys = selectedRowKeys
+      this.fileList.forEach(file => {
+        if (selectedRowKeys.find(key => key === file.fileId)) {
+          file.selected = true
+        }
+      })
+    },
+
+    // 从文件列表中删除文件
+    deleteFileFromList(id) {
+      if (id) {
+        let targetIndex = this.fileList.findIndex(file => file.fileId === id)
+        let targetFile = this.fileList.find(file => file.fileId === id)
+        this.fileList.splice(targetIndex, 1)
+        if (targetFile) {
+          this.uploader.removeFile(targetFile)
+        }
+      }
+    },
+
+    // 开始文件上传流程
+    startUpload() {
+      this.fileList.forEach(file => {
+        console.log(file)
+        if (file.selected) {
+          this.computeMD5(file)
+        } else {
+          this.uploader.removeFile(file)
+        }
+      })
+      this.visible = false
+    },
+
+    // 新增的自定义的状态
+    statusSet(id, status) {
+      let statusMap = {
+        md5: {
+          text: '校验MD5',
+          bgc: '#fff'
+        },
+        merging: {
+          text: '合并中',
+          bgc: '#e2eeff'
+        },
+        transcoding: {
+          text: '转码中',
+          bgc: '#e2eeff'
+        },
+        failed: {
+          text: '上传失败',
+          bgc: '#e2eeff'
+        }
+      }
+      this.$nextTick(() => {
+        this.$(`<p class="myStatus_${id}"></p>`)
+          .appendTo(`.file_${id} .uploader-file-status`)
+          .css({
+            position: 'absolute',
+            top: '0',
+            left: '0',
+            right: '0',
+            bottom: '0',
+            zIndex: '1',
+            backgroundColor: statusMap[status].bgc
+          })
+          .text(statusMap[status].text)
+      })
+    },
+
+    // 移除状态
+    statusRemove(id) {
+      this.$nextTick(() => {
+        this.$(`.myStatus_${id}`).remove()
+      })
+    },
+
+    // 取消上传
+    cancelUpload() {
+      this.uploader.cancel()
     }
   },
+
   watch: {
-    promiseList: function(val) {
+    /*promiseList: function(val) {
       Promise.all(val).then(() => {
         console.log(val)
         alert('all promises success')
       })
-    }
+    }*/
   }
 }
 </script>
 
-<style>
+<style scoped>
+li {
+  list-style: none;
+}
 .uploader-example {
   width: 880px;
   padding: 15px;

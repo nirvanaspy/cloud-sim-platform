@@ -17,6 +17,10 @@ import './core/use'
 import './permission' // permission control
 import './utils/filter' // global filter
 
+import $ from 'jquery'
+
+Vue.prototype.$ = $
+
 Vue.config.productionTip = false
 
 // mount axios Vue.$http and this.$http
