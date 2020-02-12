@@ -2,9 +2,10 @@
   <uploader
     ref="uploader"
     :options="options"
-    class="uploader-example"
+    class="manage-uploader"
     @files-added="onFilesAdd"
     @file-success="onFileSuccess"
+    :file-status-text="statusText"
   >
     <uploader-unsupport></uploader-unsupport>
     <uploader-drop>
@@ -13,7 +14,20 @@
       <uploader-btn :attrs="attrs">select images</uploader-btn>
       <uploader-btn :directory="true">select folder</uploader-btn>
     </uploader-drop>
-    <uploader-list></uploader-list>
+    <uploader-list>
+      <div class="file-panel" slot-scope="props">
+        <ul class="file-list">
+          <li v-for="file in props.fileList" :key="file.fileId">
+            <uploader-file
+              :class="'file_' + file.fileId"
+              ref="files"
+              :file="file"
+              :list="true"
+            ></uploader-file>
+          </li>
+        </ul>
+      </div>
+    </uploader-list>
   </uploader>
 </template>
 
@@ -47,6 +61,13 @@ export default {
         //   return (objMessage.uploaded || []).indexOf(chunk.offset + 1) >= 0
         // }
       },
+      statusText: {
+        success: '上传结束',
+        error: '出错了',
+        uploading: '上传中',
+        paused: '暂停中',
+        waiting: '等待中'
+      },
       attrs: {
         accept: 'image/*'
       },
@@ -65,7 +86,7 @@ export default {
       let fileInfo = new Object()
       fileInfo.identifier = fileObj.uniqueIdentifier
       fileInfo.relativePath = '/' + fileObj.relativePath
-      fileInfo.totalSize = fileObj.totalSize
+      fileInfo.totalSize = fileObj.size
       fileInfo.filename = fileObj.name
       fileInfo.totalChunks = fileObj.chunks.length
       fileInfo.status = ''
@@ -75,8 +96,10 @@ export default {
     // mergeFileFactory
     mergeFileFactory(fileInfo) {
       let P = new Promise((resolve, reject) => {
+        this.statusSet(fileInfo.fileId, 'merging')
         mergeFile(qs.stringify(fileInfo))
           .then(res => {
+            this.statusRemove(fileInfo.fileId)
             resolve(res.data.data.id)
           })
           .catch(() => {
@@ -96,11 +119,12 @@ export default {
 
     //批量添加文件
     onFilesAdd(files) {
-      // let tag = uniqid.time()
+      let tag = uniqid.time()
       // files.forEach(file => {
       //   file.serialNo = tag
       // })
       files.forEach(file => {
+        file.fileId = tag
         this.computeMD5(file)
       })
     },
@@ -115,7 +139,14 @@ export default {
       const chunkSize = 10 * 1024 * 1000
       let chunks = Math.ceil(file.size / chunkSize)
       let spark = new SparkMD5.ArrayBuffer()
+
+      this.statusSet(file.fileId, 'md5')
       file.pause()
+
+      this.$(`.file_${file.fileId} .uploader-file-actions`).css({
+        display: 'none'
+      })
+
       loadNext()
       fileReader.onload = e => {
         spark.append(e.target.result)
@@ -124,8 +155,9 @@ export default {
           loadNext()
           // 实时展示MD5的计算进度
           this.$nextTick(() => {
-            document.getElementsByClassName(`.myStatus_${file.id}`).text =
-              '校验MD5 ' + ((currentChunk / chunks) * 100).toFixed(0) + '%'
+            this.$(`.myStatus_${file.fileId}`).text(
+              '文件校验中 ' + ((currentChunk / chunks) * 100).toFixed(0) + '%'
+            )
           })
         } else {
           let md5 = spark.end()
@@ -159,12 +191,41 @@ export default {
       })
       file.uniqueIdentifier = md5
       let fileInfo = this.fileInfoFactory(file)
+
+      this.statusRemove(file.fileId)
+      this.$(`.file_${file.fileId} .uploader-file-actions`).css({
+        display: 'unset'
+      })
+
       console.log(fileInfo)
       hasMd5(md5).then(res => {
         // 如果文件md5已存在则应该直接upload
         if (res.data.data.id) {
+          let resVal = ''
+          let val = file.size
+          if (val < 1024) {
+            resVal = val + ' B'
+          } else if (val >= 1024 && val < 1048576) {
+            resVal = Math.round((val / 1024) * 10) / 10 + ' KB'
+          } else if (val >= 1048576 && val < 1073741824) {
+            resVal = Math.round((val / 1048576) * 10) / 10 + ' MB'
+          } else if (val >= 1073741824) {
+            resVal = Math.round((val / 1073741824) * 10) / 10 + ' G'
+          }
+          this.$('.manage-uploader .uploader-list ul').prepend(
+            '<div status="success" class="uploader-file">' +
+              '<div class="uploader-file-progress" style="transform: translateX(0%);"></div> ' +
+              '<div class="uploader-file-info">' +
+              '<div class="uploader-file-name"><i icon="unknown" class="uploader-file-icon"></i>' +
+              file.name +
+              '</div> <div class="uploader-file-size">' +
+              resVal +
+              '</div> <div class="uploader-file-meta"></div> <div class="uploader-file-status"><span>上传结束</span> <span style="display: none;"><span>100%</span> <em>0 bytes / s</em> <i></i></span></div> <div class="uploader-file-actions"><span class="uploader-file-pause"></span> <span class="uploader-file-resume">️</span> <span class="uploader-file-retry"></span> <span class="uploader-file-remove"></span></div></div></div>'
+          )
+          this.uploader.removeFile(file)
         } else {
           // 文件md5不存在则继续上传
+          this.statusRemove(file.fileId)
           file.resume()
         }
       })
@@ -174,7 +235,51 @@ export default {
     onFileSuccess() {
       console.log(arguments[1])
       let fileInfo = this.fileInfoFactory(arguments[1])
+      fileInfo.fileId = arguments[1].fileId
       this.promiseList.push(this.mergeFileFactory(fileInfo))
+    },
+
+    // 新增的自定义的状态
+    statusSet(id, status) {
+      let statusMap = {
+        md5: {
+          text: '校验MD5中',
+          bgc: '#f0f2f5'
+        },
+        merging: {
+          text: '合并中',
+          bgc: '#e2eeff'
+        },
+        transcoding: {
+          text: '转码中',
+          bgc: '#e2eeff'
+        },
+        failed: {
+          text: '上传失败',
+          bgc: '#e2eeff'
+        }
+      }
+      this.$nextTick(() => {
+        this.$(`<p class="myStatus_${id}"></p>`)
+          .appendTo(`.file_${id} .uploader-file-status`)
+          .css({
+            position: 'absolute',
+            top: '0',
+            left: '0',
+            right: '0',
+            bottom: '0',
+            zIndex: '1',
+            backgroundColor: statusMap[status].bgc
+          })
+          .text(statusMap[status].text)
+      })
+    },
+
+    // 移除状态
+    statusRemove(id) {
+      this.$nextTick(() => {
+        this.$(`.myStatus_${id}`).remove()
+      })
     }
   },
   watch: {
@@ -189,6 +294,13 @@ export default {
 </script>
 
 <style>
+.manage-uploader ul {
+  padding: 0;
+  margin-top: 20px;
+}
+li {
+  list-style: none;
+}
 .uploader-example {
   width: 880px;
   padding: 15px;

@@ -174,12 +174,10 @@ export default {
     onFilesAdd(files) {
       files.forEach(file => {
         let tag = uniqId.time()
-        // file.serialNo = tag
         file.pause()
         file.fileId = tag
       })
       this.fileList = files
-      // this.fileList = this.fileList.concat(files)
       this.visible = true
       /*files.forEach(file => {
         this.computeMD5(file)
@@ -278,7 +276,7 @@ export default {
           this.uploader.removeFile(file)
         } else {
           // 文件md5不存在则继续上传
-          this.statusRemove(file.fileId)
+          // this.statusRemove(file.fileId)
           file.resume()
         }
       })*/
