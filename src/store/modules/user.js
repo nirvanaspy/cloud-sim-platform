@@ -68,6 +68,9 @@ const user = {
           .catch(error => {
             reject(error)
           })
+        // Vue.ls.set(ACCESS_TOKEN, 'admin', 7 * 24 * 60 * 60 * 1000)
+        // commit('SET_TOKEN', 'admin')
+        // resolve()
       })
     },
 
@@ -76,6 +79,9 @@ const user = {
       return new Promise((resolve, reject) => {
         const token = Vue.ls.get(ACCESS_TOKEN)
         const result = jwt.decode(token)
+        // const result = {
+        //   username: 'admin'
+        // }
         result.role = {
           id: 'admin',
           name: '管理员',

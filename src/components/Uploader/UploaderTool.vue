@@ -21,9 +21,9 @@
       <uploader-list>
         <div class="file-panel" slot-scope="props">
           <ul class="file-list">
-            <li v-for="file in props.fileList" :key="file.id">
+            <li v-for="file in props.fileList" :key="file.fileId">
               <uploader-file
-                :class="'file_' + file.id"
+                :class="'file_' + file.fileId"
                 ref="files"
                 :file="file"
                 :list="true"
@@ -68,8 +68,8 @@ import SparkMD5 from 'spark-md5'
 import Vue from 'vue'
 import qs from 'qs'
 import { ACCESS_TOKEN } from '@/store/mutation-types'
-// import { hasMd5, mergeFile } from '@/api/files'
-import { hasMd5, mergeFile } from '@/api/gtsb_files'
+import { hasMd5, mergeFile } from '@/api/files'
+// import { hasMd5, mergeFile } from '@/api/gtsb_files'
 import uniqId from 'uniqid'
 
 export default {
@@ -79,10 +79,11 @@ export default {
     return {
       // 文件上传配置项
       options: {
-        target: 'http://192.168.31.232:23412/files/chunks',
-        /*headers: {
+        // target: 'http://192.168.31.232:23412/files/chunks',
+        target: 'http://127.0.0.1:8080/apis/files/chunks',
+        headers: {
           Authorization: `bearer${Vue.ls.get(ACCESS_TOKEN)}`
-        },*/
+        },
         chunkSize: 10 * 1024 * 1024,
         simultaneousUploads: 20,
         autoStart: false,
@@ -135,10 +136,11 @@ export default {
   methods: {
     // 文件信息实例化工厂
     fileInfoFactory(fileObj) {
+      console.log(fileObj)
       let fileInfo = new Object()
       fileInfo.identifier = fileObj.uniqueIdentifier
       fileInfo.relativePath = '/' + fileObj.relativePath
-      fileInfo.totalSize = fileObj.totalSize
+      fileInfo.totalSize = fileObj.size
       fileInfo.filename = fileObj.name
       fileInfo.totalChunks = fileObj.chunks.length
       fileInfo.status = ''
@@ -148,8 +150,12 @@ export default {
     // mergeFileFactory
     mergeFileFactory(fileInfo) {
       let P = new Promise((resolve, reject) => {
+        console.log(fileInfo)
+        this.statusSet(fileInfo.fileId, 'merging')
+        // mergeFile(fileInfo)
         mergeFile(qs.stringify(fileInfo))
           .then(res => {
+            this.statusRemove(fileInfo.fileId)
             resolve(res.data.data.id)
           })
           .catch(() => {
@@ -189,7 +195,14 @@ export default {
       const chunkSize = 10 * 1024 * 1000
       let chunks = Math.ceil(file.size / chunkSize)
       let spark = new SparkMD5.ArrayBuffer()
+
+      this.statusSet(file.fileId, 'md5')
       //file.pause()
+
+      this.$(`.file_${file.fileId} .uploader-file-actions`).css({
+        display: 'none'
+      })
+
       loadNext()
       fileReader.onload = e => {
         spark.append(e.target.result)
@@ -198,8 +211,9 @@ export default {
           loadNext()
           // 实时展示MD5的计算进度
           this.$nextTick(() => {
-            document.getElementsByClassName(`.myStatus_${file.id}`).text =
-              '校验MD5 ' + ((currentChunk / chunks) * 100).toFixed(0) + '%'
+            this.$(`.myStatus_${file.fileId}`).text(
+              '文件校验中 ' + ((currentChunk / chunks) * 100).toFixed(0) + '%'
+            )
           })
         } else {
           let md5 = spark.end()
@@ -232,6 +246,10 @@ export default {
       })
       file.uniqueIdentifier = md5
       let fileInfo = this.fileInfoFactory(file)
+      this.statusRemove(file.fileId)
+      this.$(`.file_${file.fileId} .uploader-file-actions`).css({
+        display: 'unset'
+      })
       console.log(fileInfo)
       /*hasMd5(md5).then(res => {
         // 如果文件md5已存在则应该直接upload
@@ -260,6 +278,7 @@ export default {
           this.uploader.removeFile(file)
         } else {
           // 文件md5不存在则继续上传
+          this.statusRemove(file.fileId)
           file.resume()
         }
       })*/
@@ -270,6 +289,7 @@ export default {
     onFileSuccess() {
       console.log(arguments[1])
       let fileInfo = this.fileInfoFactory(arguments[1])
+      fileInfo.fileId = arguments[1].fileId
       this.promiseList.push(this.mergeFileFactory(fileInfo))
     },
 
@@ -313,8 +333,8 @@ export default {
     statusSet(id, status) {
       let statusMap = {
         md5: {
-          text: '校验MD5',
-          bgc: '#fff'
+          text: '校验MD5中',
+          bgc: '#f0f2f5'
         },
         merging: {
           text: '合并中',
@@ -370,6 +390,10 @@ export default {
 </script>
 
 <style scoped>
+.manage-uploader ul {
+  padding: 0;
+  margin-top: 20px;
+}
 li {
   list-style: none;
 }

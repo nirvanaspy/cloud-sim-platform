@@ -21,7 +21,7 @@ export function mergeFile(data) {
     url: '/files/chunks/merge',
     method: 'post',
     headers: {
-      'content-type': 'application/x-www-form-urlencoded'
+      'content-type': 'application/json'
     },
     timeout: 600000,
     data
